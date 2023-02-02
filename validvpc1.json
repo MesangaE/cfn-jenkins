@@ -1,0 +1,150 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "this infrastructure creates a vpc and its dependencies",
+    "Metadata": {
+
+    },
+    "Parameters": {
+        
+        "myvpccidr": {
+            "Description": "provide cidr for vpc",
+            "Type": "String",
+            "Default": "10.0.0.0/16"
+        },
+    
+        "subnetaz": {
+            "Description": "provide az for subnet",
+            "Type": "AWS::EC2::AvailabilityZone::Name",
+            "Default": "us-east-1a",
+            "AllowedValues": ["us-east-1a","us-east-1b", "us-east-1c"]
+        },
+        
+        "subnetcidr": {
+            "Description": "subnet cidr",
+            "Type": "String",
+            "Default": "10.0.1.0/24"
+        },
+        "keyName": {
+            "Description": "keyname for ssh connect by ec2",
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::KeyPair::KeyName>",
+            "Default": "keyName"
+        },
+        
+        "ImageId": {
+            "Description": "ami for instance",
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+            "Default": "ImageId"
+        },
+        "InstanceType": {
+          "Description": "provides value for instance type",
+          "Type": "AWS::SSM::Parameter::Value<String>",
+          "Default": "InstanceType",
+          "AllowedValues": ["InstanceType", "t2.medium"]
+      }
+    },
+    "Resources": {
+        
+        "myvpc": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "CidrBlock": { "Ref": "myvpccidr" },
+            "Tags":[
+            { "Key": "Name", "Value":  "myvpc" }
+            ]
+          }
+        },
+        
+        "mysubnet": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "AvailabilityZone": { "Ref": "subnetaz" },
+            "VpcId": { "Ref": "myvpc" },
+            "CidrBlock": { "Ref": "subnetcidr" },
+            "Tags":[
+            { "Key": "Name", "Value":  "mysubnet" }
+            ]
+          }
+        },
+        
+        "myinstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone" : { "Ref": "subnetaz" },
+                "KeyName": { "Ref": "keyName" },
+                "ImageId":{ "Ref": "ImageId" },
+                "InstanceType": "t2.micro",
+                "Monitoring": "true",
+                "SubnetId" : { "Ref": "mysubnet" },
+                "SecurityGroupIds" : 
+                [{ "Ref": "mysecuritygroup" }],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "myinstance"
+                    }
+                ]
+                }
+            },
+              "mysecuritygroup" : {
+                "Type" : "AWS::EC2::SecurityGroup",
+                "Properties" : {
+                  "GroupDescription" : "allow ssh to client host",
+                  "SecurityGroupIngress" : [ 
+                    {"IpProtocol": "tcp",
+                     "FromPort" : 22,
+                     "ToPort" : 22,
+                     "CidrIp" : "0.0.0.0/0"}
+                  ],
+                  "VpcId" : { "Ref": "myvpc" },
+                  "Tags":[
+                  { "Key": "Name", "Value":  "mysecuritygroup" }
+                  ]
+                }
+              },
+              "myinternetgw": {
+                "Type": "AWS::EC2::InternetGateway",
+                "Properties": {
+                  
+                  "Tags":[
+                  { "Key": "Name", "Value":  "myinternetgw" }
+                  ]
+                }
+              },
+              "AttachGateway": {
+                "Type": "AWS::EC2::VPCGatewayAttachment",
+                "Properties": {
+                  "VpcId": { "Ref": "myvpc" },
+                  "InternetGatewayId": { "Ref": "myinternetgw" }
+                }
+              },
+              "myroutetable": {
+                "Type": "AWS::EC2::RouteTable",
+                "Properties": {
+                  "VpcId": { "Ref": "myvpc" },
+                  "Tags":[
+                  { "Key": "Name", "Value":  "myroutetable" }
+                  ]
+                }
+              },
+              "myrtassociation": {
+                "Type": "AWS::EC2::SubnetRouteTableAssociation",
+                "Properties": {
+                  "SubnetId": { "Ref": "mysubnet" } ,
+                  "RouteTableId": { "Ref": "myroutetable" }
+                  
+                }
+              },            
+                "myRoute" : {
+                    "Type" : "AWS::EC2::Route",
+                    "DependsOn" : "myinternetgw",
+                    "Properties" : {
+                    "RouteTableId" : { "Ref" : "myroutetable" },
+                    "DestinationCidrBlock" : "0.0.0.0/0",
+                    "GatewayId" : { "Ref" : "myinternetgw" }
+                    }
+                }
+            },         
+    "Outputs": {
+
+    }
+}
