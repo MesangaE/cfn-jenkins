@@ -1,9 +1,11 @@
 Pipeline{
     agent any
     stages{
-        stage('Submit Stack')
-            steps{
-                sh echo'"aws cloudformation creation-stack --stack=name vpcanddependencies --template body file://validvpc1.json --tags Key=Name Value=myvpc key=Name Value=mysubnet Key=Name Value=myinstance Key=Name Value=mysecuritygroup Key=Name Value=myinternetgw Key=Name Value=routetable --region "us-east-1"'
+        stage('Submit Stack'){
+             steps{
+                sh "aws cloudformation creation-stack --stack=name vpcanddependencies --template-body file://validvpc1.json --region 'us-east-1'"
             }
+    
     }
+}
 }
