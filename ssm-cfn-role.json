@@ -1,0 +1,85 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Template to attach IAM Role to an EC2 instance",
+        "Parameters": { 
+        "InstanceType": {
+            "Description": "Enter t2.micro or t2.small. Default is t2.micro",
+            "Type": "String",
+            "Default": "t2.micro"
+        },
+        
+        "ImageId": {
+            "Description": "input imageID",
+            "Type": "String",
+            "Default": "ami-0b5eea76982371e91"
+        }
+        
+        
+        },
+        
+        "Resources": {
+            
+            "Mycfninstance": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": { "Ref": "ImageId" },
+                    "InstanceType":  { "Ref": "InstanceType" },
+                    "IamInstanceProfile":  { "Ref": "WebServerInstanceProfile" },
+                    
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": "SSM-cfn-instance"
+                            
+                        }
+                    ]
+                  
+            }
+                    },
+                    
+                    "instanceeip": {
+                      "Type": "AWS::EC2::EIP",
+                      "Properties": {
+                        "Domain": "vpc",
+                        "InstanceId": 
+                        { "Ref": "Mycfninstance" }
+                        
+                      }
+                    },
+            
+                        "SSMIAMRole": {
+                            "Type": "AWS::IAM::Role",
+                            "Properties": {
+                                "AssumeRolePolicyDocument": {
+                                    "Statement": [
+                                        {
+                                            "Effect": "Allow",
+                                            "Principal": {
+                                                "Service": [
+                                                    "ec2.amazonaws.com"
+                                                ]
+                                            },
+                                            "Action": [
+                                                "sts:AssumeRole"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "ManagedPolicyArns": [
+                                    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+                                ]
+                            }
+                        },
+                        "WebServerInstanceProfile": {
+                            "Type": "AWS::IAM::InstanceProfile",
+                            "Properties": {
+                                "Path": "/",
+                                "Roles": [
+                                    {"Ref": "SSMIAMRole" }
+                                ]
+                            }
+                        }
+                              
+                            
+        }
+    }
